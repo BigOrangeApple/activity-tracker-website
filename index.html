@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ActivityTracker — Know Where Your Time Goes</title>
+    <meta name="description" content="A beautiful, lightweight macOS menu bar app that tracks your app usage and Chrome tabs. Free download for macOS.">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #060811;
+            --surface: rgba(255,255,255,0.04);
+            --border: rgba(255,255,255,0.08);
+            --purple: #8b5cf6;
+            --blue: #3b82f6;
+            --teal: #14b8a6;
+            --pink: #ec4899;
+            --text: #f1f5f9;
+            --muted: #64748b;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+        }
+
+        /* ===== NAV ===== */
+        nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 60px;
+            background: rgba(6, 8, 17, 0.7);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+        }
+        .nav-logo {
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #a855f7, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .nav-links { display: flex; gap: 36px; list-style: none; }
+        .nav-links a { 
+            color: var(--muted); 
+            text-decoration: none; 
+            font-size: 0.95rem; 
+            font-weight: 500; 
+            transition: color 0.2s;
+        }
+        .nav-links a:hover { color: var(--text); }
+        .nav-cta {
+            background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+            color: #fff;
+            text-decoration: none;
+            padding: 10px 22px;
+            border-radius: 100px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        .nav-cta:hover { opacity: 0.85; transform: translateY(-1px); }
+
+        /* ===== HERO ===== */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 120px 24px 80px;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero-glow {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.25;
+            pointer-events: none;
+        }
+        .glow-1 { width: 600px; height: 600px; background: #8b5cf6; top: -150px; left: -150px; }
+        .glow-2 { width: 500px; height: 500px; background: #3b82f6; bottom: -100px; right: -100px; }
+        .glow-3 { width: 400px; height: 400px; background: #14b8a6; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(139, 92, 246, 0.12);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            color: #a78bfa;
+            padding: 8px 18px;
+            border-radius: 100px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 32px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+        .hero-badge-dot {
+            width: 7px; height: 7px;
+            background: #8b5cf6;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.3); } }
+
+        h1 {
+            font-size: clamp(3rem, 7vw, 6rem);
+            font-weight: 900;
+            line-height: 1.05;
+            letter-spacing: -3px;
+            max-width: 900px;
+            margin-bottom: 24px;
+            animation: fadeInUp 0.8s ease-out 0.1s backwards;
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #a855f7 0%, #3b82f6 50%, #14b8a6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero-sub {
+            font-size: 1.25rem;
+            color: var(--muted);
+            max-width: 580px;
+            line-height: 1.7;
+            margin-bottom: 44px;
+            font-weight: 400;
+            animation: fadeInUp 0.8s ease-out 0.2s backwards;
+        }
+        .hero-buttons {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 72px;
+            animation: fadeInUp 0.8s ease-out 0.3s backwards;
+        }
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+            color: #fff;
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 100px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            transition: all 0.3s;
+            box-shadow: 0 20px 40px -10px rgba(139, 92, 246, 0.5);
+        }
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 28px 50px -10px rgba(139, 92, 246, 0.65);
+        }
+        .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 100px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+        }
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.08);
+            transform: translateY(-2px);
+        }
+        .hero-meta {
+            color: var(--muted);
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .hero-meta span { display: flex; align-items: center; gap: 6px; }
+        .hero-meta svg { color: #8b5cf6; }
+
+        /* ===== SCREENSHOT ===== */
+        .screenshot-section {
+            display: flex;
+            justify-content: center;
+            padding: 0 24px 100px;
+            animation: fadeInUp 0.8s ease-out 0.4s backwards;
+            position: relative;
+        }
+        .screenshot-wrapper {
+            position: relative;
+            max-width: 900px;
+            width: 100%;
+        }
+        .screenshot-glow {
+            position: absolute;
+            inset: -40px;
+            background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(59,130,246,0.15));
+            border-radius: 40px;
+            filter: blur(40px);
+        }
+        .screenshot-wrapper img {
+            width: 100%;
+            border-radius: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+            position: relative;
+            box-shadow: 0 60px 120px -20px rgba(0,0,0,0.8);
+        }
+
+        /* ===== FEATURES ===== */
+        .features {
+            padding: 100px 24px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section-label {
+            text-align: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--purple);
+            margin-bottom: 16px;
+        }
+        .section-title {
+            text-align: center;
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 800;
+            letter-spacing: -1.5px;
+            margin-bottom: 64px;
+            line-height: 1.1;
+        }
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+        @media (max-width: 900px) { .features-grid { grid-template-columns: 1fr; } }
+        
+        .feature-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 36px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(139,92,246,0.05), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .feature-card:hover { transform: translateY(-6px); border-color: rgba(139,92,246,0.3); }
+        .feature-card:hover::before { opacity: 1; }
+        .feature-icon {
+            width: 52px; height: 52px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            font-size: 1.5rem;
+        }
+        .feature-card h3 { font-size: 1.2rem; font-weight: 700; margin-bottom: 12px; }
+        .feature-card p { color: var(--muted); line-height: 1.7; font-size: 0.95rem; }
+
+        /* ===== HOW IT WORKS ===== */
+        .how-it-works {
+            padding: 100px 24px;
+            background: rgba(255,255,255,0.02);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+        .steps-container {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+        .step {
+            display: flex;
+            gap: 32px;
+            align-items: flex-start;
+            padding: 40px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .step:last-child { border-bottom: none; }
+        .step-num {
+            width: 48px; height: 48px;
+            flex-shrink: 0;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #8b5cf6, #3b82f6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #fff;
+        }
+        .step-content h3 { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; }
+        .step-content p { color: var(--muted); line-height: 1.7; }
+
+        /* ===== DOWNLOAD ===== */
+        .download-section {
+            padding: 120px 24px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .download-glow-1 { position: absolute; width: 500px; height: 500px; background: #8b5cf6; border-radius: 50%; filter: blur(120px); opacity: 0.15; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .download-box {
+            position: relative;
+            max-width: 640px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 32px;
+            padding: 60px 48px;
+            backdrop-filter: blur(20px);
+        }
+        .download-box h2 { font-size: 2.5rem; font-weight: 800; letter-spacing: -1.5px; margin-bottom: 16px; }
+        .download-box p { color: var(--muted); margin-bottom: 40px; font-size: 1.05rem; line-height: 1.7; }
+        .version-tag {
+            display: inline-block;
+            background: rgba(139, 92, 246, 0.12);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            color: #a78bfa;
+            padding: 4px 12px;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+        .download-meta {
+            margin-top: 24px;
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            color: var(--muted);
+            font-size: 0.85rem;
+            flex-wrap: wrap;
+        }
+        .download-meta span { display: flex; align-items: center; gap: 6px; }
+
+        /* ===== FOOTER ===== */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 40px 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .footer-logo {
+            font-size: 1rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #a855f7, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        footer p { color: var(--muted); font-size: 0.85rem; }
+
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Animated grid background */
+        .grid-bg {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+            mask-image: radial-gradient(ellipse at center, black 0%, transparent 75%);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="grid-bg"></div>
+
+    <!-- NAV -->
+    <nav>
+        <span class="nav-logo">ActivityTracker</span>
+        <ul class="nav-links">
+            <li><a href="#features">Features</a></li>
+            <li><a href="#how-it-works">How It Works</a></li>
+            <li><a href="#download">Download</a></li>
+        </ul>
+        <a href="ActivityTracker.dmg" class="nav-cta" download>
+            Download Free
+        </a>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-glow glow-1"></div>
+        <div class="hero-glow glow-2"></div>
+        <div class="hero-glow glow-3"></div>
+
+        <div class="hero-badge">
+            <div class="hero-badge-dot"></div>
+            Free for macOS · Version 1.0
+        </div>
+
+        <h1>
+            Know exactly where<br>your <span class="gradient-text">time goes.</span>
+        </h1>
+
+        <p class="hero-sub">
+            ActivityTracker sits silently in your menu bar, logging every app and Chrome tab you visit — then turns it all into a beautiful, interactive dashboard.
+        </p>
+
+        <div class="hero-buttons">
+            <a href="ActivityTracker.dmg" class="btn-primary" download>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Download for macOS
+            </a>
+            <a href="#features" class="btn-secondary">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                See Features
+            </a>
+        </div>
+
+        <div class="hero-meta">
+            <span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                Free & Open Source
+            </span>
+            <span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                No account required
+            </span>
+            <span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                All data stays on your Mac
+            </span>
+        </div>
+    </section>
+
+    <!-- SCREENSHOT -->
+    <div class="screenshot-section">
+        <div class="screenshot-wrapper">
+            <div class="screenshot-glow"></div>
+            <img src="screenshot.png" alt="ActivityTracker Dashboard Screenshot" />
+        </div>
+    </div>
+
+    <!-- FEATURES -->
+    <section class="features" id="features">
+        <p class="section-label">Features</p>
+        <h2 class="section-title">Everything you need to<br><span class="gradient-text">own your time</span></h2>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon" style="background: rgba(139,92,246,0.15); color: #8b5cf6;">⏱️</div>
+                <h3>Menu Bar Native</h3>
+                <p>Lives quietly in your macOS menu bar, out of your way until you need it. See your total time tracked at a glance.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon" style="background: rgba(59,130,246,0.15); color: #3b82f6;">📊</div>
+                <h3>Beautiful Dashboard</h3>
+                <p>A stunning interactive dashboard with doughnut charts, animated progress bars, and a chronological activity timeline.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon" style="background: rgba(20,184,166,0.15); color: #14b8a6;">🌐</div>
+                <h3>Chrome Tab Tracking</h3>
+                <p>Goes beyond just apps — it tracks every Chrome tab you visit, so you know how much time was spent on YouTube vs. Gmail.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon" style="background: rgba(236,72,153,0.15); color: #ec4899;">📅</div>
+                <h3>Activity Timeline</h3>
+                <p>A scrollable chronological timeline shows your day as a stream of colored blocks. Hover to see exact start and stop times.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon" style="background: rgba(245,158,11,0.15); color: #f59e0b;">🔒</div>
+                <h3>100% Private</h3>
+                <p>All your activity data is stored locally on your Mac in a private SQLite database. Nothing is ever uploaded to a server.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon" style="background: rgba(139,92,246,0.15); color: #8b5cf6;">📤</div>
+                <h3>CSV Export</h3>
+                <p>Export your raw tracking data to CSV at any time to analyze it in Excel, Notion, or any other tool you prefer.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="how-it-works" id="how-it-works">
+        <div style="max-width: 1200px; margin: 0 auto; padding: 0 24px;">
+            <p class="section-label">How It Works</p>
+            <h2 class="section-title">Up and running in<br><span class="gradient-text">under a minute</span></h2>
+            <div class="steps-container">
+                <div class="step">
+                    <div class="step-num">1</div>
+                    <div class="step-content">
+                        <h3>Download & Install</h3>
+                        <p>Download the <code style="background:rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px;">.dmg</code> file and drag <strong>ActivityTracker.app</strong> into your Applications folder. That's it — no Terminal commands required.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-num">2</div>
+                    <div class="step-content">
+                        <h3>Grant Accessibility Permission</h3>
+                        <p>On first launch, macOS will ask you to grant Accessibility permissions so the app can see which window is currently active. This is required and your data never leaves your device.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-num">3</div>
+                    <div class="step-content">
+                        <h3>Click "Start Tracking"</h3>
+                        <p>Click the ⏱️ icon in your menu bar and hit <strong>Start Tracking</strong>. Go about your day — ActivityTracker silently logs everything in the background.</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-num">4</div>
+                    <div class="step-content">
+                        <h3>View Your Dashboard</h3>
+                        <p>Click <strong>Daily Breakdown</strong> at any time to open a beautiful interactive dashboard in your browser showing exactly how you spent your day.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- DOWNLOAD -->
+    <section class="download-section" id="download">
+        <div class="download-glow-1"></div>
+        <div class="download-box">
+            <div class="version-tag">Version 1.0.0 · Free</div>
+            <h2>Ready to take<br>control of your time?</h2>
+            <p>Download ActivityTracker for free and start understanding your digital habits today. No subscription, no sign-up, no catch.</p>
+            <a href="ActivityTracker.dmg" class="btn-primary" style="display: inline-flex; margin: 0 auto;" download>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Download for macOS — Free
+            </a>
+            <div class="download-meta">
+                <span>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                    macOS 12+
+                </span>
+                <span>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                    Apple Silicon & Intel
+                </span>
+                <span>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+                    No account needed
+                </span>
+            </div>
+            <p style="margin-top: 24px; margin-bottom: 0; font-size: 0.8rem; color: #475569;">
+                ⚠️ First time opening? Right-click the app → Open to bypass Apple's Gatekeeper.
+            </p>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer>
+        <span class="footer-logo">ActivityTracker</span>
+        <p>Built with ❤️ for macOS · All data stored locally on your device.</p>
+        <p style="color: var(--muted); font-size: 0.85rem;">© 2026 ActivityTracker</p>
+    </footer>
+
+    <script>
+        // Smooth scroll for nav links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({ behavior: 'smooth' });
+            });
+        });
+
+        // Intersection Observer for scroll animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animation = 'fadeInUp 0.7s ease-out forwards';
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.feature-card, .step').forEach(el => {
+            el.style.opacity = '0';
+            observer.observe(el);
+        });
+    </script>
+
+</body>
+</html>
